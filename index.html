@@ -202,7 +202,7 @@
 
         // load a default deck for demo purposes
         async function loadDefaultDeck() {
-            const defaultUrl = 'https://evidlo.github.io/ankiprint/Esperanto_Affixes.apkg';
+            const defaultUrl = 'https://evan.widloski.com/ankiprint/Esperanto_Affixes.apkg';
             const response = await fetch(defaultUrl);
             const blob = await response.blob();
             const file = new File([blob], 'example_deck.apkg', { type: 'application/octet-stream' });
