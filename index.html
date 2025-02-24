@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printable Anki Deck</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            border: 1px solid #000;
+            padding: 10px;
+            page-break-inside: avoid;
+            height: var(--card-height);
+            box-sizing: border-box;
+        }
+
+        .card-front, .card-back {
+            direction: ltr;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .page {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(var(--columns), 1fr);
+            gap: 10px;
+        }
+
+        .page.front {
+            direction: ltr;
+        }
+
+        .page.back {
+            direction: rtl;
+        }
+
+        hr.no-print {
+            margin: 2em;
+        }
+
+        :root {
+            --rows: 6;
+            --columns: 3;
+            --card-height: 150px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+            
+            body {
+                max-width: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .card {
+                border: 1px solid #000 !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .page {
+                page-break-after: always;
+            }
+
+            .page:last-child {
+                page-break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <p>
+            <h1><span style="color:lightblue; background-color:gray">★</span> Printable Anki Deck</h1>
+            Convert an Anki deck to printable grid of cards.
+        </p>
+        <label>Rows</label>
+        <input type="number" id="rows" value="6"/>
+        <label>Columns</label>
+        <input type="number" id="columns" value="3"/>
+        <p>
+            <label>Card Height (px)</label>
+            <input type="number" id="height" value="150"/>
+        </p>
+        <p> <input type="file" id="deckInput" accept=".apkg" onchange="handleDeckUpload()" /></p>
+        <p> <button id="print" onclick="window.print()">Print</button> </p>
+    </div>
+    
+    <div id="cardContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        let cards; // Declare cards globally
+
+        async function handleDeckUpload() {
+            const fileInput = document.getElementById('deckInput');
+            const file = fileInput.files[0];
+            const rows = document.getElementById('rows').valueAsNumber;
+            const columns = document.getElementById('columns').valueAsNumber;
+            const height = document.getElementById('height').valueAsNumber;
+            const cardsPerPage = rows * columns;
+            
+            // Update CSS variable for height
+            document.documentElement.style.setProperty('--card-height', `${height}px`);
+
+            if (!file) {
+                return;
+            }
+
+            try {
+                // First unzip the .apkg file
+                const zip = new JSZip();
+                const zipContent = await zip.loadAsync(file);
+                const sqliteFile = await zipContent.file("collection.anki2").async("uint8array");
+
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}`
+                });
+
+                const db = new SQL.Database(sqliteFile);
+                
+                // Query to get cards from the Anki database
+                cards = db.exec("SELECT DISTINCT n.flds FROM cards c JOIN notes n ON c.nid = n.id");
+                
+                const cardContainer = document.getElementById('cardContainer');
+                cardContainer.innerHTML = '';
+
+                const totalCards = cards[0].values.length;
+                const totalPages = Math.ceil(totalCards / cardsPerPage);
+
+                // Create pages in alternating order
+                for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+                    // Create a front page
+                    const frontPage = document.createElement('div');
+                    frontPage.className = 'page front';
+                    cardContainer.appendChild(frontPage);
+
+                    // Fill the front page
+                    for (let i = 0; i < cardsPerPage; i++) {
+                        const cardIndex = pageNum * cardsPerPage + i;
+                        if (cardIndex >= totalCards) break;
+                        
+                        const [front] = cards[0].values[cardIndex][0].split('\x1f');
+                        const frontDiv = document.createElement('div');
+                        frontDiv.className = 'card';
+                        frontDiv.innerHTML = `<div class="card-front">${front}</div>`;
+                        frontPage.appendChild(frontDiv);
+                    }
+
+                    // Add horizontal rule after front page
+                    cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
+
+                    // Create corresponding back page
+                    const backPage = document.createElement('div');
+                    backPage.className = 'page back';
+                    cardContainer.appendChild(backPage);
+
+                    // Fill the back page
+                    for (let i = 0; i < cardsPerPage; i++) {
+                        const cardIndex = pageNum * cardsPerPage + i;
+                        if (cardIndex >= totalCards) break;
+                        
+                        const [, back] = cards[0].values[cardIndex][0].split('\x1f');
+                        const backDiv = document.createElement('div');
+                        backDiv.className = 'card';
+                        backDiv.innerHTML = `<div class="card-back">${back}</div>`;
+                        backPage.appendChild(backDiv);
+                    }
+
+                    // Add horizontal rule after back page
+                    cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
+                }
+
+                // Trigger print dialog
+                // window.print();
+
+            } catch (error) {
+                console.error('Error processing deck:', error);
+                alert('Error processing the Anki deck. Please make sure it\'s a valid .apkg file.');
+            }
+        }
+
+        function updateGridVars() {
+            const rows = document.getElementById('rows').valueAsNumber;
+            const columns = document.getElementById('columns').valueAsNumber;
+            const height = document.getElementById('height').valueAsNumber;
+            document.documentElement.style.setProperty('--rows', rows);
+            document.documentElement.style.setProperty('--columns', columns);
+            document.documentElement.style.setProperty('--card-height', `${height}px`);
+            handleDeckUpload();
+        }
+
+        // Add event listeners to inputs
+        document.getElementById('rows').addEventListener('change', updateGridVars);
+        document.getElementById('columns').addEventListener('change', updateGridVars);
+        document.getElementById('height').addEventListener('change', updateGridVars);
+        
+        // Initialize on load
+        updateGridVars();
+    </script>
+</body>
+</html>
