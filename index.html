@@ -99,8 +99,14 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fzstd@0.1.1/umd/index.js"></script>
+
+
     <script>
         let cards; // Declare cards globally
+        let sqliteFile
+        let zipContent
+        let sqliteData;
 
         async function handleDeckUpload() {
             const fileInput = document.getElementById('deckInput');
@@ -120,69 +126,85 @@
             try {
                 // First unzip the .apkg file
                 const zip = new JSZip();
-                const zipContent = await zip.loadAsync(file);
-                const sqliteFile = await zipContent.file("collection.anki2").async("uint8array");
+                zipContent = await zip.loadAsync(file);
+                sqliteFile = zipContent.file("collection.anki21b") || zipContent.file("collection.anki2");
 
-                const SQL = await initSqlJs({
-                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}`
-                });
+                if (sqliteFile) {
 
-                const db = new SQL.Database(sqliteFile);
-                
-                // Query to get cards from the Anki database
-                cards = db.exec("SELECT DISTINCT n.flds FROM cards c JOIN notes n ON c.nid = n.id");
-                
-                const cardContainer = document.getElementById('cardContainer');
-                cardContainer.innerHTML = '';
-
-                const totalCards = cards[0].values.length;
-                const totalPages = Math.ceil(totalCards / cardsPerPage);
-
-                // Create pages in alternating order
-                for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-                    // Create a front page
-                    const frontPage = document.createElement('div');
-                    frontPage.className = 'page front';
-                    cardContainer.appendChild(frontPage);
-
-                    // Fill the front page
-                    for (let i = 0; i < cardsPerPage; i++) {
-                        const cardIndex = pageNum * cardsPerPage + i;
-                        if (cardIndex >= totalCards) break;
-                        
-                        const [front] = cards[0].values[cardIndex][0].split('\x1f');
-                        const frontDiv = document.createElement('div');
-                        frontDiv.className = 'card';
-                        frontDiv.innerHTML = `<div class="card-front">${front}</div>`;
-                        frontPage.appendChild(frontDiv);
+                    if (sqliteFile.name.endsWith('.anki21b')) {
+                        // Decompress the Zstd file
+                        const compressedData = await sqliteFile.async("uint8array");
+                        // sqliteData = zstd.decompress(compressedData);
+                        sqliteData = fzstd.decompress(compressedData);
+                    } else {
+                        // For .anki2 files, just read it directly
+                        sqliteData = await sqliteFile.async("uint8array");
                     }
 
-                    // Add horizontal rule after front page
-                    cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
+                    const SQL = await initSqlJs({
+                        locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}`
+                    });
 
-                    // Create corresponding back page
-                    const backPage = document.createElement('div');
-                    backPage.className = 'page back';
-                    cardContainer.appendChild(backPage);
+                    const db = new SQL.Database(sqliteData);
+                    
+                    // Query to get cards from the Anki database
+                    cards = db.exec("SELECT DISTINCT n.flds FROM cards c JOIN notes n ON c.nid = n.id");
+                    
+                    const cardContainer = document.getElementById('cardContainer');
+                    cardContainer.innerHTML = '';
 
-                    // Fill the back page
-                    for (let i = 0; i < cardsPerPage; i++) {
-                        const cardIndex = pageNum * cardsPerPage + i;
-                        if (cardIndex >= totalCards) break;
-                        
-                        const [, back] = cards[0].values[cardIndex][0].split('\x1f');
-                        const backDiv = document.createElement('div');
-                        backDiv.className = 'card';
-                        backDiv.innerHTML = `<div class="card-back">${back}</div>`;
-                        backPage.appendChild(backDiv);
+                    const totalCards = cards[0].values.length;
+                    const totalPages = Math.ceil(totalCards / cardsPerPage);
+
+                    // Create pages in alternating order
+                    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+                        // Create a front page
+                        const frontPage = document.createElement('div');
+                        frontPage.className = 'page front';
+                        cardContainer.appendChild(frontPage);
+
+                        // Fill the front page
+                        for (let i = 0; i < cardsPerPage; i++) {
+                            const cardIndex = pageNum * cardsPerPage + i;
+                            if (cardIndex >= totalCards) break;
+                            
+                            const [front] = cards[0].values[cardIndex][0].split('\x1f');
+                            const frontDiv = document.createElement('div');
+                            frontDiv.className = 'card';
+                            frontDiv.innerHTML = `<div class="card-front">${front}</div>`;
+                            frontPage.appendChild(frontDiv);
+                        }
+
+                        // Add horizontal rule after front page
+                        cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
+
+                        // Create corresponding back page
+                        const backPage = document.createElement('div');
+                        backPage.className = 'page back';
+                        cardContainer.appendChild(backPage);
+
+                        // Fill the back page
+                        for (let i = 0; i < cardsPerPage; i++) {
+                            const cardIndex = pageNum * cardsPerPage + i;
+                            if (cardIndex >= totalCards) break;
+                            
+                            const [, back] = cards[0].values[cardIndex][0].split('\x1f');
+                            const backDiv = document.createElement('div');
+                            backDiv.className = 'card';
+                            backDiv.innerHTML = `<div class="card-back">${back}</div>`;
+                            backPage.appendChild(backDiv);
+                        }
+
+                        // Add horizontal rule after back page
+                        cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
                     }
 
-                    // Add horizontal rule after back page
-                    cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
+                    // Trigger print dialog
+                    // window.print();
+
+                } else {
+                    alert('No valid Anki collection file found in the uploaded deck.');
                 }
-
-                // Trigger print dialog
-                // window.print();
 
             } catch (error) {
                 console.error('Error processing deck:', error);
