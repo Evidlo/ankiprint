@@ -222,12 +222,23 @@
             handleDeckUpload();
         }
 
-        // load a default deck for demo purposes
+        // load a default deck for demo purposes or load from ?url=… querystring
         async function loadDefaultDeck() {
-            const defaultUrl = 'https://evan.widloski.com/ankiprint/Esperanto_Affixes.apkg';
-            const response = await fetch(defaultUrl);
+            let url
+            let response
+            let desc
+            const urlParams = new URLSearchParams(window.location.search);
+            if (url=urlParams.get("url")) {
+                // try to load deck from ?url=…
+                response = await fetch("https://corsproxy.io/" + encodeURIComponent(url));
+                desc = "Loaded from URL"
+            } else {
+                // get default deck
+                response = await fetch('https://evan.widloski.com/ankiprint/Esperanto_Affixes.apkg');
+                desc = "example_deck.apkg"
+            }
             const blob = await response.blob();
-            const file = new File([blob], 'example_deck.apkg', { type: 'application/octet-stream' });
+            const file = new File([blob], desc, { type: 'application/octet-stream' });
 
             // Simulate file input change
             const fileInput = document.getElementById('deckInput');
