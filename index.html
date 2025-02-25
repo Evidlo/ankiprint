@@ -80,19 +80,22 @@
 <body>
     <div class="no-print">
         <p>
-            <h1><span style="color:lightblue; background-color:gray">★</span> Printable Anki Deck</h1>
-            Convert an Anki deck to printable grid of cards.
+            <h1>
+                <span style="color:lightblue; background-color:gray">★</span> Printable Anki Deck
+                <a style="text-decoration:none; color:gainsboro" href="https://github.com/evidlo/ankiprint">🛈</a>
+            </h1>
+            Convert an Anki deck to double-sided printable grid of cards.
         </p>
         <label>Rows</label>
-        <input type="number" id="rows" value="6"/>
+        <input type="number" id="rows" min="1" value="6"/>
         <label>Columns</label>
-        <input type="number" id="columns" value="3"/>
+        <input type="number" id="columns" min="1" value="3"/>
         <p>
             <label>Card Height (px)</label>
             <input type="number" id="height" value="150"/>
         </p>
-        <p> <input type="file" id="deckInput" accept=".apkg" onchange="handleDeckUpload()" /></p>
-        <p> <button id="print" onclick="window.print()">Print</button> </p>
+        <p> <input type="file" id="deckInput" accept=".apkg" onchange="handleDeckUpload()" />
+        <button id="print" onclick="window.print()">Print</button> </p>
     </div>
     
     <div id="cardContainer"></div>
