@@ -12,6 +12,10 @@
             padding: 20px;
         }
 
+        #info {
+            line-height: 2em;
+        }
+
         .card {
             border: 1px solid #000;
             padding: 10px;
@@ -79,10 +83,27 @@
 </head>
 <body>
     <div class="no-print">
+        <dialog id="info">
+            <form method="dialog">
+                <p>
+                By Evan Widloski.
+                <br>
+                <a href="https://github.com/evidlo/ankiprint">Source Code</a>
+                <br>
+                Consider manually duplexing printing (print even pages, then place pages back into paper tray and print odd pages).
+                Double-sided printing often results in alignment issues.
+                <br>
+                    <!-- <button onclick="info.close()">Close</button> -->
+                <button>Close dialog</button>
+                </p>
+            </form>
+        </dialog>
         <p>
             <h1>
                 <span style="color:lightblue; background-color:gray">★</span> Printable Anki Deck
-                <a style="text-decoration:none; color:gainsboro" href="https://github.com/evidlo/ankiprint">🛈</a>
+                <!-- <a style="text-decoration:none; color:gainsboro" href="https://github.com/evidlo/ankiprint">🛈</a> -->
+                <a style="text-decoration:none; color:gainsboro" onclick="info.showModal()">🛈</a>
+                <!-- <button onclick="info.showModal()">Open</button> -->
             </h1>
             Convert an Anki deck to double-sided printable grid of cards.
         </p>
