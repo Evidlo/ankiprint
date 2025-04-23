@@ -57,6 +57,10 @@
             margin: 2em;
         }
 
+        fieldset {
+            margin-top: 1em;
+        }
+
         :root {
             --rows: 6;
             --columns: 3;
@@ -129,6 +133,14 @@
         <input type="number" id="frontFontSize" min="1" max="200" value="120"/>
         <label for="backFontSize">Back Font Size (%)</label>
         <input type="number" id="backFontSize" min="1" max="200" value="80"/>
+        <fieldset>
+            <legend>Data Field Mapping</legend>
+            <p>Select which data fields to display on each side of a card using a comma separated list of numbers, each number corresponds to a field.</p>
+            <label for="frontDataFields">Front</label>
+            <input type="text" id="frontDataFields" value="1"/>
+            <label for="backDataFields">Back</label>
+            <input type="text" id="backDataFields" value="0"/>
+        </fieldset>
         <p> <input type="file" id="deckInput" accept=".apkg" onchange="handleDeckUpload()" />
         <button id="print" onclick="window.print()">Print</button> </p>
     </div>
@@ -153,6 +165,8 @@
             const height = document.getElementById('height').valueAsNumber;
             const frontFontSize = document.getElementById('frontFontSize').valueAsNumber;
             const backFontSize = document.getElementById('backFontSize').valueAsNumber;
+            const frontDataFields = document.getElementById('frontDataFields').value;
+            const backDataFields = document.getElementById('backDataFields').value;
 
             const cardsPerPage = rows * columns;
 
@@ -199,6 +213,9 @@
                     const totalCards = cards[0].values.length;
                     const totalPages = Math.ceil(totalCards / cardsPerPage);
 
+                    const frontRowIndices = frontDataFields.split(',').map(a => Number(a));
+                    const backRowIndices = backDataFields.split(',').map(a => Number(a));
+
                     let cardIndex = 0;
 
                     // Create pages in alternating order
@@ -213,18 +230,22 @@
 
                         for (let i = 0; i < cardsPerPage; i++, cardIndex++) {
                             if (cardIndex >= totalCards) break;
-                            const [front, back] = cards[0].values[cardIndex][0].split('\x1f');
+                            const record = cards[0].values[cardIndex][0].split('\x1f');
 
                             // Fill the front page
                             const frontDiv = document.createElement('div');
                             frontDiv.className = 'card';
-                            frontDiv.innerHTML = `<div class="card-front">${front}</div>`;
+                            frontDiv.innerHTML = `<div class="card-front">${
+                                frontRowIndices.map(n => record[n]).join('<hr>')
+                            }</div>`;
                             frontFrag.appendChild(frontDiv);
 
                             // Fill the back page
                             const backDiv = document.createElement('div');
                             backDiv.className = 'card';
-                            backDiv.innerHTML = `<div class="card-back">${back}</div>`;
+                            backDiv.innerHTML = `<div class="card-back">${
+                                backRowIndices.map(n => record[n]).join('<hr>')
+                            }</div>`;
                             backFrag.appendChild(backDiv);
                         }
 
@@ -290,6 +311,8 @@
         document.getElementById('height').addEventListener('change', handleDeckUpload);
         document.getElementById('frontFontSize').addEventListener('change', handleDeckUpload);
         document.getElementById('backFontSize').addEventListener('change', handleDeckUpload);
+        document.getElementById('frontDataFields').addEventListener('change', handleDeckUpload);
+        document.getElementById('backDataFields').addEventListener('change', handleDeckUpload);
 
         // Initialize on load
         handleDeckUpload();
