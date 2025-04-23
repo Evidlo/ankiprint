@@ -218,8 +218,14 @@
                     const totalCards = cards[0].values.length;
                     const totalPages = Math.ceil(totalCards / cardsPerPage);
 
-                    const frontRowIndices = frontDataFields.split(',').map(a => Number(a));
-                    const backRowIndices = backDataFields.split(',').map(a => Number(a));
+                    const frontRowIndices = frontDataFields.split(',')
+                        .filter(a => a.trim() !== '')
+                        .map(a => Number(a))
+                        .filter(a => !isNaN(a) && a >= 0);
+                    const backRowIndices = backDataFields.split(',')
+                        .filter(a => a.trim() !== '')
+                        .map(a => Number(a))
+                        .filter(a => !isNaN(a) && a >= 0);
 
                     let cardIndex = 0;
 
