@@ -59,7 +59,7 @@
             .no-print {
                 display: none;
             }
-            
+
             body {
                 max-width: none;
                 margin: 0;
@@ -118,13 +118,12 @@
         <p> <input type="file" id="deckInput" accept=".apkg" onchange="handleDeckUpload()" />
         <button id="print" onclick="window.print()">Print</button> </p>
     </div>
-    
+
     <div id="cardContainer"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fzstd@0.1.1/umd/index.js"></script>
-
 
     <script>
         let cards; // Declare cards globally
@@ -139,7 +138,7 @@
             const columns = document.getElementById('columns').valueAsNumber;
             const height = document.getElementById('height').valueAsNumber;
             const cardsPerPage = rows * columns;
-            
+
             // Update CSS variable for height
             document.documentElement.style.setProperty('--card-height', `${height}px`);
 
@@ -154,7 +153,6 @@
                 sqliteFile = zipContent.file("collection.anki21b") || zipContent.file("collection.anki2");
 
                 if (sqliteFile) {
-
                     if (sqliteFile.name.endsWith('.anki21b')) {
                         // Decompress the Zstd file
                         const compressedData = await sqliteFile.async("uint8array");
@@ -170,15 +168,17 @@
                     });
 
                     const db = new SQL.Database(sqliteData);
-                    
+
                     // Query to get cards from the Anki database
                     cards = db.exec("SELECT DISTINCT n.flds FROM cards c JOIN notes n ON c.nid = n.id");
-                    
+
                     const cardContainer = document.getElementById('cardContainer');
                     cardContainer.innerHTML = '';
 
                     const totalCards = cards[0].values.length;
                     const totalPages = Math.ceil(totalCards / cardsPerPage);
+
+                    let cardIndex = 0;
 
                     // Create pages in alternating order
                     for (let pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -187,17 +187,27 @@
                         frontPage.className = 'page front';
                         cardContainer.appendChild(frontPage);
 
-                        // Fill the front page
-                        for (let i = 0; i < cardsPerPage; i++) {
-                            const cardIndex = pageNum * cardsPerPage + i;
+                        const frontFrag = document.createDocumentFragment();
+                        const backFrag = document.createDocumentFragment();
+
+                        for (let i = 0; i < cardsPerPage; i++, cardIndex++) {
                             if (cardIndex >= totalCards) break;
-                            
-                            const [front] = cards[0].values[cardIndex][0].split('\x1f');
+                            const [front, back] = cards[0].values[cardIndex][0].split('\x1f');
+
+                            // Fill the front page
                             const frontDiv = document.createElement('div');
                             frontDiv.className = 'card';
                             frontDiv.innerHTML = `<div class="card-front">${front}</div>`;
-                            frontPage.appendChild(frontDiv);
+                            frontFrag.appendChild(frontDiv);
+
+                            // Fill the back page
+                            const backDiv = document.createElement('div');
+                            backDiv.className = 'card';
+                            backDiv.innerHTML = `<div class="card-back">${back}</div>`;
+                            backFrag.appendChild(backDiv);
                         }
+
+                        frontPage.appendChild(frontFrag);
 
                         // Add horizontal rule after front page
                         cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
@@ -207,17 +217,7 @@
                         backPage.className = 'page back';
                         cardContainer.appendChild(backPage);
 
-                        // Fill the back page
-                        for (let i = 0; i < cardsPerPage; i++) {
-                            const cardIndex = pageNum * cardsPerPage + i;
-                            if (cardIndex >= totalCards) break;
-                            
-                            const [, back] = cards[0].values[cardIndex][0].split('\x1f');
-                            const backDiv = document.createElement('div');
-                            backDiv.className = 'card';
-                            backDiv.innerHTML = `<div class="card-back">${back}</div>`;
-                            backPage.appendChild(backDiv);
-                        }
+                        backPage.appendChild(backFrag);
 
                         // Add horizontal rule after back page
                         cardContainer.appendChild(document.createElement('hr')).className = 'no-print';
@@ -225,11 +225,9 @@
 
                     // Trigger print dialog
                     // window.print();
-
                 } else {
                     alert('No valid Anki collection file found in the uploaded deck.');
                 }
-
             } catch (error) {
                 console.error('Error processing deck:', error);
                 alert('Error processing the Anki deck. Please make sure it\'s a valid .apkg file.');
@@ -272,13 +270,14 @@
 
             handleDeckUpload();
         }
+
         window.onload = loadDefaultDeck;
 
         // Add event listeners to inputs
         document.getElementById('rows').addEventListener('change', updateGridVars);
         document.getElementById('columns').addEventListener('change', updateGridVars);
         document.getElementById('height').addEventListener('change', updateGridVars);
-        
+
         // Initialize on load
         updateGridVars();
     </script>
