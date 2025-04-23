@@ -139,7 +139,9 @@
             const height = document.getElementById('height').valueAsNumber;
             const cardsPerPage = rows * columns;
 
-            // Update CSS variable for height
+            // Update CSS variables
+            document.documentElement.style.setProperty('--rows', rows);
+            document.documentElement.style.setProperty('--columns', columns);
             document.documentElement.style.setProperty('--card-height', `${height}px`);
 
             if (!file) {
@@ -234,16 +236,6 @@
             }
         }
 
-        function updateGridVars() {
-            const rows = document.getElementById('rows').valueAsNumber;
-            const columns = document.getElementById('columns').valueAsNumber;
-            const height = document.getElementById('height').valueAsNumber;
-            document.documentElement.style.setProperty('--rows', rows);
-            document.documentElement.style.setProperty('--columns', columns);
-            document.documentElement.style.setProperty('--card-height', `${height}px`);
-            handleDeckUpload();
-        }
-
         // load a default deck for demo purposes or load from ?url=… querystring
         async function loadDefaultDeck() {
             let url
@@ -274,12 +266,12 @@
         window.onload = loadDefaultDeck;
 
         // Add event listeners to inputs
-        document.getElementById('rows').addEventListener('change', updateGridVars);
-        document.getElementById('columns').addEventListener('change', updateGridVars);
-        document.getElementById('height').addEventListener('change', updateGridVars);
+        document.getElementById('rows').addEventListener('change', handleDeckUpload);
+        document.getElementById('columns').addEventListener('change', handleDeckUpload);
+        document.getElementById('height').addEventListener('change', handleDeckUpload);
 
         // Initialize on load
-        updateGridVars();
+        handleDeckUpload();
     </script>
 </body>
 </html>
