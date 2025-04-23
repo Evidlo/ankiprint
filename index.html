@@ -30,6 +30,14 @@
             overflow: hidden;
         }
 
+        .card-front {
+            font-size: var(--front-font-size);
+        }
+
+        .card-back {
+            font-size: var(--back-font-size);
+        }
+
         .page {
             width: 100%;
             display: grid;
@@ -53,6 +61,8 @@
             --rows: 6;
             --columns: 3;
             --card-height: 150px;
+            --front-font-size: 120%;
+            --back-font-size: 80%;
         }
 
         @media print {
@@ -115,6 +125,10 @@
             <label>Card Height (px)</label>
             <input type="number" id="height" value="150"/>
         </p>
+        <label for="frontFontSize">Front Font Size (%)</label>
+        <input type="number" id="frontFontSize" min="1" max="200" value="120"/>
+        <label for="backFontSize">Back Font Size (%)</label>
+        <input type="number" id="backFontSize" min="1" max="200" value="80"/>
         <p> <input type="file" id="deckInput" accept=".apkg" onchange="handleDeckUpload()" />
         <button id="print" onclick="window.print()">Print</button> </p>
     </div>
@@ -137,12 +151,17 @@
             const rows = document.getElementById('rows').valueAsNumber;
             const columns = document.getElementById('columns').valueAsNumber;
             const height = document.getElementById('height').valueAsNumber;
+            const frontFontSize = document.getElementById('frontFontSize').valueAsNumber;
+            const backFontSize = document.getElementById('backFontSize').valueAsNumber;
+
             const cardsPerPage = rows * columns;
 
             // Update CSS variables
             document.documentElement.style.setProperty('--rows', rows);
             document.documentElement.style.setProperty('--columns', columns);
             document.documentElement.style.setProperty('--card-height', `${height}px`);
+            document.documentElement.style.setProperty('--front-font-size', `${frontFontSize}%`);
+            document.documentElement.style.setProperty('--back-font-size', `${backFontSize}%`);
 
             if (!file) {
                 return;
@@ -269,6 +288,8 @@
         document.getElementById('rows').addEventListener('change', handleDeckUpload);
         document.getElementById('columns').addEventListener('change', handleDeckUpload);
         document.getElementById('height').addEventListener('change', handleDeckUpload);
+        document.getElementById('frontFontSize').addEventListener('change', handleDeckUpload);
+        document.getElementById('backFontSize').addEventListener('change', handleDeckUpload);
 
         // Initialize on load
         handleDeckUpload();
